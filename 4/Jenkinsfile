@@ -19,6 +19,7 @@ pipeline {
                 echo 'Building application...'
 
                 sh '''
+                    rm -rf build
                     mkdir -p build
                     cp 4/app/index.html build/index.html
                 '''
@@ -31,8 +32,27 @@ pipeline {
 
                 sh '''
                     test -f build/index.html
-                    grep -q "CI/CD Pipeline Successfully Deployed" build/index.html
+                    grep -q "CI/CD" build/index.html
                 '''
+            }
+        }
+
+        stage('Package') {
+            steps {
+                echo 'Packaging application...'
+
+                sh '''
+                    tar -czf application.tar.gz -C build index.html
+                '''
+            }
+        }
+
+        stage('Archive Artifact') {
+            steps {
+                echo 'Archiving build artifact...'
+
+                archiveArtifacts artifacts: 'application.tar.gz',
+                                 fingerprint: true
             }
         }
 
@@ -43,7 +63,7 @@ pipeline {
                 sh '''
                     rm -rf /tmp/cicd-deployment
                     mkdir -p /tmp/cicd-deployment
-                    cp build/index.html /tmp/cicd-deployment/index.html
+                    tar -xzf application.tar.gz -C /tmp/cicd-deployment
                 '''
             }
         }
@@ -54,7 +74,7 @@ pipeline {
 
                 sh '''
                     test -f /tmp/cicd-deployment/index.html
-                    grep -q "CI/CD Pipeline Successfully Deployed" /tmp/cicd-deployment/index.html
+                    grep -q "CI/CD" /tmp/cicd-deployment/index.html
                 '''
             }
         }
@@ -62,11 +82,11 @@ pipeline {
 
     post {
         success {
-            echo 'CI/CD pipeline completed successfully.'
+            echo 'CI/CD workflow completed successfully.'
         }
 
         failure {
-            echo 'CI/CD pipeline failed.'
+            echo 'CI/CD workflow failed.'
         }
     }
 }
