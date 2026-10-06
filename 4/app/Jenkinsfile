@@ -1,0 +1,72 @@
+pipeline {
+    agent any
+
+    triggers {
+        pollSCM('* * * * *')
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                echo 'Checking out source code...'
+                checkout scm
+            }
+        }
+
+        stage('Build') {
+            steps {
+                echo 'Building application...'
+
+                sh '''
+                    mkdir -p build
+                    cp 4/app/index.html build/index.html
+                '''
+            }
+        }
+
+        stage('Test') {
+            steps {
+                echo 'Testing application...'
+
+                sh '''
+                    test -f build/index.html
+                    grep -q "CI/CD Pipeline Successfully Deployed" build/index.html
+                '''
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                echo 'Deploying application...'
+
+                sh '''
+                    rm -rf /tmp/cicd-deployment
+                    mkdir -p /tmp/cicd-deployment
+                    cp build/index.html /tmp/cicd-deployment/index.html
+                '''
+            }
+        }
+
+        stage('Verify Deployment') {
+            steps {
+                echo 'Verifying deployment...'
+
+                sh '''
+                    test -f /tmp/cicd-deployment/index.html
+                    grep -q "CI/CD Pipeline Successfully Deployed" /tmp/cicd-deployment/index.html
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'CI/CD pipeline completed successfully.'
+        }
+
+        failure {
+            echo 'CI/CD pipeline failed.'
+        }
+    }
+}
